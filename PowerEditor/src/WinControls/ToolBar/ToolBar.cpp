@@ -37,69 +37,41 @@ const int WS_TOOLBARSTYLE = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIB
 
 void ToolBar::initTheme(TiXmlDocument *toolIconsDocRoot)
 {
-    _toolIcons =  toolIconsDocRoot->FirstChild(TEXT("NotepadPlus"));
-	if (_toolIcons)
+	const TCHAR *nodeNames[] = {TEXT("NotepadPlus"), TEXT("ToolBarIcons"), TEXT("Theme")};
+	
+	for (int i = 0; i < sizeof(nodeNames) / sizeof(TCHAR*); i++)
 	{
-		_toolIcons = _toolIcons->FirstChild(TEXT("ToolBarIcons"));
-		if (_toolIcons)
+		_toolIcons =  toolIconsDocRoot->FirstChild(nodeNames[i]);
+		if(!_toolIcons)
+			return;
+	}
+
+	const TCHAR *themeDir = (_toolIcons->ToElement())->Attribute(TEXT("pathPrefix"));
+	const TCHAR *stateNames[] = {TEXT("normal"), TEXT("hover"), TEXT("disabled")};
+
+	for (TiXmlNode *childNode = _toolIcons->FirstChildElement(TEXT("Icon"));
+		 childNode ;
+		 childNode = childNode->NextSibling(TEXT("Icon")))
+	{
+		int iIcon;
+		const TCHAR *res = (childNode->ToElement())->Attribute(TEXT("id"), &iIcon);
+		if (!res)
+			continue;
+
+		for(int i = 0; i < sizeof(stateNames) / sizeof(TCHAR*); i++)
 		{
-			_toolIcons = _toolIcons->FirstChild(TEXT("Theme"));
-			if (_toolIcons)
-			{
-				const TCHAR *themeDir = (_toolIcons->ToElement())->Attribute(TEXT("pathPrefix"));
+			TiXmlNode *grandChildNode = childNode->FirstChildElement(stateNames[i]);
+			if (!grandChildNode)
+				continue;
 
-				for (TiXmlNode *childNode = _toolIcons->FirstChildElement(TEXT("Icon"));
-					 childNode ;
-					 childNode = childNode->NextSibling(TEXT("Icon")))
-				{
-					int iIcon;
-					const TCHAR *res = (childNode->ToElement())->Attribute(TEXT("id"), &iIcon);
-					if (res)
-					{
-						TiXmlNode *grandChildNode = childNode->FirstChildElement(TEXT("normal"));
-						if (grandChildNode)
-						{
-							TiXmlNode *valueNode = grandChildNode->FirstChild();
-							//putain, enfin!!!
-							if (valueNode)
-							{
-								generic_string locator = themeDir?themeDir:TEXT("");
-								
-								locator += valueNode->Value();
-								_customIconVect.push_back(iconLocator(0, iIcon, locator));
-							}
-						}
+			TiXmlNode *valueNode = grandChildNode->FirstChild();
+			if (!valueNode)
+				continue;
 
-						grandChildNode = childNode->FirstChildElement(TEXT("hover"));
-						if (grandChildNode)
-						{
-							TiXmlNode *valueNode = grandChildNode->FirstChild();
-							//putain, enfin!!!
-							if (valueNode)
-							{
-								generic_string locator = themeDir?themeDir:TEXT("");
-								
-								locator += valueNode->Value();
-								_customIconVect.push_back(iconLocator(1, iIcon, locator));
-							}
-						}
+			generic_string locator = themeDir?themeDir:TEXT("");
 
-						grandChildNode = childNode->FirstChildElement(TEXT("disabled"));
-						if (grandChildNode)
-						{
-							TiXmlNode *valueNode = grandChildNode->FirstChild();
-							//putain, enfin!!!
-							if (valueNode)
-							{
-								generic_string locator = themeDir?themeDir:TEXT("");
-								
-								locator += valueNode->Value();
-								_customIconVect.push_back(iconLocator(2, iIcon, locator));
-							}
-						}
-					}
-				}
-			}
+			locator += valueNode->Value();
+			_customIconVect.push_back(iconLocator(i, iIcon, locator));
 		}
 	}
 }
